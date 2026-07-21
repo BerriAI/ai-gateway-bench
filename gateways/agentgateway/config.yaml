@@ -1,0 +1,10 @@
+llm:
+  port: 8104
+  models:
+  - name: "*"
+    provider:
+      custom: 
+        formats:
+        - type: messages
+    params:
+      baseUrl: http://127.0.0.1:9000

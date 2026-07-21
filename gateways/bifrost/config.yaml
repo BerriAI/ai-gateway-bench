@@ -1,6 +1,6 @@
 $schema: https://www.getbifrost.ai/schema
 providers:
-  mock:
+  anthropic:
     keys:
       - name: mock-key
         value: dummy
@@ -10,10 +10,5 @@ providers:
     network_config:
       base_url: http://127.0.0.1:9000
       default_request_timeout_in_seconds: 60
-    custom_provider_config:
-      base_provider_type: anthropic
-      allowed_requests:
-        chat_completion: true
-        chat_completion_stream: true
 config_store:
   enabled: false

@@ -31,6 +31,7 @@ GATEWAYS = {
     "bifrost": "Bifrost",
     "portkey": "Portkey",
     "litellm-python": "LiteLLM (Python v1)",
+    "agentgateway": "Agentgateway",
 }
 
 
@@ -58,7 +59,9 @@ def _load() -> list[Row]:
     return rows
 
 
-def _panel(ax, rows: list[Row], values, unit: str, title: str, log: bool = False) -> None:
+def _panel(
+    ax, rows: list[Row], values, unit: str, title: str, log: bool = False, decimals: int = 1
+) -> None:
     order = sorted(range(len(rows)), key=lambda i: values[i], reverse=True)
     labels = [rows[i].label for i in order]
     vals = [values[i] for i in order]
@@ -81,14 +84,15 @@ def _panel(ax, rows: list[Row], values, unit: str, title: str, log: bool = False
         x = bar.get_width() + floor if log else bar.get_width()
         offset = x * 0.12 if log else max(vals) * 0.02
         ax.text(x + offset, bar.get_y() + bar.get_height() / 2,
-                f"{value:.1f}", va="center", fontsize=10, fontweight="bold", color="#222")
+                f"{value:.{decimals}f}", va="center", fontsize=10,
+                fontweight="bold", color="#222")
 
 
 def main() -> None:
     rows = _load()
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 3.6))
     _panel(ax1, rows, [r.added_p99_ms for r in rows], "p99 added latency (ms, log scale)",
-           "Gateway overhead — p99 added latency", log=True)
+           "Gateway overhead — p99 added latency", log=True, decimals=2)
     _panel(ax2, rows, [r.peak_rss_mb for r in rows], "peak RSS (MB)",
            "Deploy cost — peak memory")
     fig.suptitle("AIGatewayBench: overhead vs a local deterministic mock", fontsize=14,
