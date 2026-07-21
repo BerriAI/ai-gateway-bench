@@ -1,7 +1,7 @@
 # LiteLLM Rust
 
 The Rust gateway is built from `/home/ubuntu/repos/litellm/litellm-rust` on
-branch `litellm_rust_messages_route`.
+branch `litellm_rust_gateway_v1_messages_route`.
 
 ```bash
 cd /home/ubuntu/repos/litellm/litellm-rust
