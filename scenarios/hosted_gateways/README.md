@@ -46,6 +46,6 @@ python analyze/make_hosted_chart.py
 
 ## Recorded run
 
-Run date 2026-10-09 on an AWS KVM VM (Intel Xeon Platinum 8559C, 8 vCPU, 31 GiB, kernel 6.8.0-1061-aws). OpenRouter-billed cost was $0.042 for 300 calls; the whole run stayed under $0.20. Every OpenRouter generation was confirmed served by Anthropic via the generation metadata (`results/openrouter_generation.jsonl`)
+Run date 2026-10-09 on an AWS KVM VM (Intel Xeon Platinum 8559C, 8 vCPU, 31 GiB, kernel 6.8.0-1061-aws). OpenRouter-billed cost was $0.042 for 300 calls; the whole run stayed under $0.20. Every generation's `provider_name` was Anthropic per OpenRouter's generation API (fetched by `openrouter_generation.py`); the raw JSONL files are not committed, matching the repo's `results/*.jsonl` ignore rule, and `results/openrouter_overhead.csv` records the provider set
 
 "OpenRouter own overhead" in `results/openrouter_overhead.csv` is client TTFT minus OpenRouter's self-reported `latency` field from its generation API. OpenRouter does not formally define that field, so treat it as an estimate

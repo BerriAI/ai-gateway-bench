@@ -7,11 +7,13 @@ analyze/hosted_ttft.png.
 from __future__ import annotations
 
 import csv
+import textwrap
 from pathlib import Path
 
 import matplotlib
 
 matplotlib.use("Agg")
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 
 RESULTS = Path(__file__).resolve().parent.parent / "results"
@@ -53,14 +55,20 @@ def hosted_ttft_chart() -> None:
     width = 0.35
     p50 = [float(data[key]["ttft_p50_ms"]) for key in keys]
     p90 = [float(data[key]["ttft_p90_ms"]) for key in keys]
-    left.bar([v - width / 2 for v in x], p50, width=width, color=colors, alpha=0.95, label="p50")
-    left.bar([v + width / 2 for v in x], p90, width=width, color=colors, alpha=0.5, label="p90")
+    left.bar([v - width / 2 for v in x], p50, width=width, color=colors, alpha=0.95)
+    left.bar([v + width / 2 for v in x], p90, width=width, color=colors, alpha=0.5)
     left.set_xticks(x, labels)
     left.set_ylabel("TTFT (ms)")
     left.set_title("Streaming TTFT per arm", loc="left", fontweight="bold")
     left.tick_params(axis="x", rotation=20)
     left.grid(axis="y", alpha=0.2)
-    left.legend(frameon=False)
+    left.legend(
+        handles=[
+            mpatches.Patch(facecolor="#222", alpha=0.95, label="p50"),
+            mpatches.Patch(facecolor="#222", alpha=0.5, label="p90"),
+        ],
+        frameon=False,
+    )
 
     delta_keys = [key for key in keys if key != "direct"]
     delta = [float(data[key]["p50_delta_vs_direct_ms"]) for key in delta_keys]
@@ -76,7 +84,17 @@ def hosted_ttft_chart() -> None:
     right.tick_params(axis="x", rotation=20)
     right.grid(axis="y", alpha=0.2)
 
-    fig.text(0.01, 0.01, "n=300 per arm, 1,200 requests shuffled across arms (seed 0), 2 client threads, warm persistent clients. Streaming /v1/messages, claude-haiku-4-5. TTFT = first text_delta event. Error bars: bootstrap 95% CI. Python v1 opened 26 new connections (gateway-side closes); that cost is included in its numbers.", fontsize=7, color="#777")
+    n_per_arm = int(data["direct"]["requests"])
+    total = sum(int(row["requests"]) for row in data.values())
+    python_new_conns = int(data["litellm-python"]["new_connections"])
+    footnote = (
+        f"n={n_per_arm} per arm, {total} requests shuffled across arms, warm persistent clients. "
+        "Streaming /v1/messages, claude-haiku-4-5. TTFT = first text_delta event. "
+        "Error bars: bootstrap 95% CI. "
+        f"Python v1 opened {python_new_conns} new connections (gateway-side closes); "
+        "that cost is included in its numbers."
+    )
+    fig.text(0.01, 0.01, "\n".join(textwrap.wrap(footnote, 140)), fontsize=7, color="#777")
     fig.tight_layout(rect=(0, 0.06, 1, 1))
     fig.savefig(OUT / "hosted_ttft.png", dpi=160, bbox_inches="tight")
 
