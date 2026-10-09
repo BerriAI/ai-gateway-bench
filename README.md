@@ -8,7 +8,7 @@ Every gateway points at the same local deterministic mock, so provider latency a
 overhead = latency(client -> gateway -> mock) - latency(client -> mock directly)
 ```
 
-Gateways compared: LiteLLM (Rust), LiteLLM (Python v1), Portkey, Bifrost.
+Gateways compared: LiteLLM (Rust), LiteLLM (Python v1), Portkey, Bifrost, and OpenRouter (hosted, real-model scenario only).
 
 ![AIGatewayBench overhead comparison](analyze/overhead_comparison.png)
 
@@ -72,6 +72,21 @@ Per-gateway setup (how to start each and point it at the mock) is in `gateways/<
 ## Results
 
 The charts are generated from real local runs against the fast Rust mock using a persistent Rust reqwest load driver for concurrency and throughput. The direct baseline remained controlled through concurrency 64; concurrency 256 was dropped because its p99 exceeded twice the single-client floor. Raw per-run data is in `results/`. Portkey OSS currently returns HTTP 500 for streaming Anthropic Messages requests.
+
+## Hosted gateways (real model)
+
+OpenRouter cannot point at the local mock, so it is measured in a separate real-model scenario: streaming `/v1/messages` to claude-haiku-4-5, 300 requests per arm, 1,200 requests shuffled across arms, 2 client threads, warm persistent clients. TTFT is the first `text_delta` event. Both LiteLLM arms are within noise of direct Anthropic; OpenRouter adds 61 ms at p50 (95% CI 51 to 75) over direct. See [`scenarios/hosted_gateways/README.md`](scenarios/hosted_gateways/README.md) for the method
+
+| Arm | TTFT p50 (ms) | TTFT p90 (ms) | TTFT p99 (ms) | Full response p50 (ms) | p50 delta vs direct (ms) | 95% CI | Permutation p | Errors |
+|---|---|---|---|---|---|---|---|---|
+| Direct Anthropic | 529.7 | 593.2 | 702.6 | 581.3 | | | | 0 |
+| LiteLLM (Rust) | 525.2 | 608.0 | 707.2 | 582.0 | -4.5 | [-14.3, 10.3] | 0.6486 | 0 |
+| LiteLLM (Python v1) | 535.6 | 614.1 | 712.1 | 594.4 | +5.9 | [-7.0, 18.5] | 0.3544 | 0 |
+| OpenRouter | 590.7 | 708.2 | 876.5 | 664.3 | +61.0 | [51.3, 75.2] | 0.0001 | 0 |
+
+OpenRouter's own overhead estimate (client TTFT minus its self-reported upstream `latency` field, an estimate since OpenRouter does not formally define the field): p50 30.4 ms, p90 76.4 ms
+
+![Hosted gateways TTFT](analyze/hosted_ttft.png)
 
 ## Cost estimate
 
