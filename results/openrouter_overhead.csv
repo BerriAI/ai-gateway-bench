@@ -1,0 +1,3 @@
+metric,p10_ms,p50_ms,p90_ms,n,providers
+openrouter_reported_upstream_latency,512.9,551.0,624.1,300,Anthropic
+client_ttft_minus_reported_latency,23.0,30.4,76.4,300,Anthropic

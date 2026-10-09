@@ -1,0 +1,5 @@
+gateway,requests,errors,new_connections,ttft_p50_ms,ttft_p90_ms,ttft_p99_ms,ttlt_p50_ms,p50_delta_vs_direct_ms,p50_ci_lo_vs_direct_ms,p50_ci_hi_vs_direct_ms,p50_perm_p_vs_direct,p90_delta_vs_direct_ms,p90_ci_lo_vs_direct_ms,p90_ci_hi_vs_direct_ms,p90_perm_p_vs_direct,p50_delta_vs_litellm-rust_ms,p50_ci_lo_vs_litellm-rust_ms,p50_ci_hi_vs_litellm-rust_ms,p50_perm_p_vs_litellm-rust,p90_delta_vs_litellm-rust_ms,p90_ci_lo_vs_litellm-rust_ms,p90_ci_hi_vs_litellm-rust_ms,p90_perm_p_vs_litellm-rust
+direct,300,0,1,529.7,593.2,702.6,581.3,,,,,,,,,4.5,-10.2,14.6,0.6405,-14.8,-51.2,16.5,0.3664
+litellm-rust,300,0,1,525.2,608.0,707.2,582.0,-4.5,-14.3,10.3,0.6486,14.8,-16.4,51.5,0.3767,,,,,,,,
+litellm-python,300,0,26,535.6,614.1,712.1,594.4,5.9,-7.0,18.5,0.3544,20.9,-6.4,55.8,0.0888,10.4,-3.0,19.5,0.092,6.1,-28.4,43.2,0.5758
+openrouter,300,0,1,590.7,708.2,876.5,664.3,61.0,51.3,75.2,0.0001,115.0,61.4,144.3,0.0001,65.5,54.4,76.1,0.0001,100.2,48.1,131.7,0.0001

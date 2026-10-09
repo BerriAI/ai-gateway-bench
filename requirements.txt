@@ -4,3 +4,4 @@ uvicorn[standard]==0.34.0
 httpx==0.28.1
 psutil==6.1.1
 matplotlib==3.10.0
+numpy==2.5.3
