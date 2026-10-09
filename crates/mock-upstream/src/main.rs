@@ -80,6 +80,12 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind((address, port))
         .await
         .expect("mock upstream binds");
+    // TCP_NODELAY: without it a streamed response of many small SSE writes can stall
+    // ~40 ms on the last small segment (Nagle waiting for the peer's delayed ACK) — a
+    // cost the non-streaming path never pays, so it skews any overhead comparison.
+    let listener = axum::serve::ListenerExt::tap_io(listener, |tcp_stream: &mut tokio::net::TcpStream| {
+        let _ = tcp_stream.set_nodelay(true);
+    });
     axum::serve(listener, app)
         .await
         .expect("mock upstream serves");
@@ -185,7 +191,9 @@ fn anthropic_stream(
         {
             return;
         }
-        tokio::time::sleep(config.ttft).await;
+        if !config.ttft.is_zero() {
+            tokio::time::sleep(config.ttft).await;
+        }
         if tool_call {
             let start = json!({
                 "type": "content_block_start",
@@ -205,7 +213,9 @@ fn anthropic_stream(
                 return;
             }
             for fragment in TOOL_FRAGMENTS {
-                tokio::time::sleep(config.itl).await;
+                if !config.itl.is_zero() {
+                    tokio::time::sleep(config.itl).await;
+                }
                 let delta = json!({
                     "type": "content_block_delta",
                     "index": 0,
@@ -247,7 +257,9 @@ fn anthropic_stream(
                 return;
             }
             for _ in 0..config.output_tokens {
-                tokio::time::sleep(config.itl).await;
+                if !config.itl.is_zero() {
+                    tokio::time::sleep(config.itl).await;
+                }
                 let delta = json!({
                     "type": "content_block_delta",
                     "index": 0,
@@ -309,7 +321,9 @@ async fn messages(State(config): State<MockConfig>, Json(body): Json<Value>) -> 
             .body(Body::from_stream(anthropic_stream(config, tool_call)))
             .expect("stream response builds");
     }
-    tokio::time::sleep(config.ttft).await;
+    if !config.ttft.is_zero() {
+            tokio::time::sleep(config.ttft).await;
+        }
     Json(anthropic_body(&config, tool_call)).into_response()
 }
 
@@ -338,7 +352,9 @@ fn openai_body(config: &MockConfig) -> Value {
 fn openai_stream(config: MockConfig) -> ReceiverStream<Result<Bytes, Infallible>> {
     let (sender, receiver) = mpsc::channel(16);
     tokio::spawn(async move {
-        tokio::time::sleep(config.ttft).await;
+        if !config.ttft.is_zero() {
+            tokio::time::sleep(config.ttft).await;
+        }
         if sender
             .send(Ok(Bytes::from(format!(
                 "data: {}\n\n",
@@ -361,7 +377,9 @@ fn openai_stream(config: MockConfig) -> ReceiverStream<Result<Bytes, Infallible>
             return;
         }
         for _ in 0..config.output_tokens {
-            tokio::time::sleep(config.itl).await;
+            if !config.itl.is_zero() {
+                    tokio::time::sleep(config.itl).await;
+                }
             let payload = json!({
                 "id": "chatcmpl-gwbench",
                 "object": "chat.completion.chunk",
@@ -422,6 +440,8 @@ async fn chat_completions(State(config): State<MockConfig>, Json(body): Json<Val
             .body(Body::from_stream(openai_stream(config)))
             .expect("stream response builds");
     }
-    tokio::time::sleep(config.ttft).await;
+    if !config.ttft.is_zero() {
+            tokio::time::sleep(config.ttft).await;
+        }
     Json(openai_body(&config)).into_response()
 }
