@@ -10,6 +10,25 @@ overhead = latency(client -> gateway -> mock) - latency(client -> mock directly)
 
 Gateways compared: LiteLLM (Rust), LiteLLM (Python v1), Portkey, Bifrost, and OpenRouter (hosted, real-model scenario only).
 
+## Full-feature results
+
+At 50 requests per second, with every gateway on its own 4-core, 16 GiB pod and the features production gateways run turned on (virtual keys, budgets and rate limits, spend logs, Prometheus metrics, S3 request logs and header hooks; Portkey's open-source gateway has none of these):
+
+| Gateway | Overhead p50 (ms) | Overhead p99 (ms) | CPU (cores) | Peak memory (MiB) |
+|---|---|---|---|---|
+| LiteLLM (Rust) | 0.9 | 1.8 | 0.15 | 357 |
+| Bifrost | 1.2 | 4.2 | 0.41 | 2,809 |
+| Portkey (no features) | 2.1 | 5.3 | 0.49 | 609 |
+| LiteLLM (Python v1) | 79.3 | 1,587.8 | 2.92 | 9,553 |
+
+![Full-feature overhead, CPU and memory at 50 rps](analyze/better_benchmarks/headline.png)
+
+Overhead here is what the load generator observed, minus the time the mock was told to take, minus a direct-to-mock run at the same rate and percentile. The rate sweep from 10 to 100 rps, 1M-token streams, per-phase request timing and heap per open stream are in the [Better Benchmarks post](https://docs.litellm.ai/blog/better-benchmarks). The data is in [`results/better-benchmarks`](results/better-benchmarks), and how to run it is under [Full-feature lane](#full-feature-lane-kubernetes).
+
+## Local runs (basic config)
+
+These charts come from the local scenarios below: each gateway with a basic config on one machine, against the Rust mock.
+
 ![AIGatewayBench overhead comparison](analyze/overhead_comparison.png)
 
 ![Estimated request cost](analyze/cost_per_million.png)
@@ -90,7 +109,7 @@ and [`analyze/better_benchmarks`](analyze/better_benchmarks).
 
 ## Results
 
-The charts are generated from real local runs against the fast Rust mock using a persistent Rust reqwest load driver for concurrency and throughput. The direct baseline remained controlled through concurrency 64; concurrency 256 was dropped because its p99 exceeded twice the single-client floor. Raw per-run data is in `results/`. Portkey OSS currently returns HTTP 500 for streaming Anthropic Messages requests.
+The local-run charts are generated from real local runs against the fast Rust mock using a persistent Rust reqwest load driver for concurrency and throughput. The direct baseline remained controlled through concurrency 64; concurrency 256 was dropped because its p99 exceeded twice the single-client floor. Raw per-run data is in `results/`. Portkey OSS currently returns HTTP 500 for streaming Anthropic Messages requests.
 
 ## Hosted gateways (real model)
 
