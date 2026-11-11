@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1760" height="500" viewBox="0 0 1760 500">
+<rect width="1760" height="500" fill="#FFFFFF"/>
+<text x="0" y="26" font-family="IBM Plex Sans, Arial, sans-serif" font-size="22" font-weight="600" fill="#18212B" text-anchor="start">Time to first byte p50</text>
+<line x1="80" x2="530" y1="390.0" y2="390.0" stroke="#E2DDD2"/>
+<text x="72" y="395.0" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">0 ms</text>
+<line x1="80" x2="530" y1="307.5" y2="307.5" stroke="#E2DDD2"/>
+<text x="72" y="312.5" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">50 ms</text>
+<line x1="80" x2="530" y1="225.0" y2="225.0" stroke="#E2DDD2"/>
+<text x="72" y="230.0" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">100 ms</text>
+<line x1="80" x2="530" y1="142.5" y2="142.5" stroke="#E2DDD2"/>
+<text x="72" y="147.5" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">150 ms</text>
+<line x1="80" x2="530" y1="60.0" y2="60.0" stroke="#E2DDD2"/>
+<text x="72" y="65.0" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">200 ms</text>
+<text x="80.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">0.5</text>
+<text x="110.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">1</text>
+<text x="170.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">2</text>
+<text x="290.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">4</text>
+<text x="530.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">8</text>
+<text x="305.0" y="434" font-family="IBM Plex Sans, Arial, sans-serif" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">requests per second</text>
+<polyline points="80.0,356.2 110.0,355.7 170.0,356.7 290.0,357.2 530.0,357.0" fill="none" stroke="#2B44D6" stroke-width="3"/>
+<circle cx="80.0" cy="356.2" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="110.0" cy="355.7" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="170.0" cy="356.7" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="290.0" cy="357.2" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="530.0" cy="357.0" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<polyline points="80.0,322.4 110.0,324.5 170.0,328.9 290.0,332.4 530.0,332.2" fill="none" stroke="#E8894F" stroke-width="2.2"/>
+<circle cx="80.0" cy="322.4" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="110.0" cy="324.5" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="170.0" cy="328.9" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="290.0" cy="332.4" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="530.0" cy="332.2" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<polyline points="80.0,258.5 110.0,267.2 170.0,269.6 290.0,268.7 530.0,260.5" fill="none" stroke="#7A8597" stroke-width="2.2" stroke-dasharray="7 5"/>
+<circle cx="80.0" cy="258.5" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="110.0" cy="267.2" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="170.0" cy="269.6" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="290.0" cy="268.7" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="530.0" cy="260.5" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<text x="600" y="26" font-family="IBM Plex Sans, Arial, sans-serif" font-size="22" font-weight="600" fill="#18212B" text-anchor="start">Time to first byte p99</text>
+<line x1="680" x2="1130" y1="390.0" y2="390.0" stroke="#E2DDD2"/>
+<text x="672" y="395.0" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">0 ms</text>
+<line x1="680" x2="1130" y1="307.5" y2="307.5" stroke="#E2DDD2"/>
+<text x="672" y="312.5" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">50 ms</text>
+<line x1="680" x2="1130" y1="225.0" y2="225.0" stroke="#E2DDD2"/>
+<text x="672" y="230.0" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">100 ms</text>
+<line x1="680" x2="1130" y1="142.5" y2="142.5" stroke="#E2DDD2"/>
+<text x="672" y="147.5" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">150 ms</text>
+<line x1="680" x2="1130" y1="60.0" y2="60.0" stroke="#E2DDD2"/>
+<text x="672" y="65.0" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">200 ms</text>
+<text x="680.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">0.5</text>
+<text x="710.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">1</text>
+<text x="770.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">2</text>
+<text x="890.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">4</text>
+<text x="1130.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">8</text>
+<text x="905.0" y="434" font-family="IBM Plex Sans, Arial, sans-serif" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">requests per second</text>
+<polyline points="680.0,335.9 710.0,331.9 770.0,336.2 890.0,337.7 1130.0,339.8" fill="none" stroke="#2B44D6" stroke-width="3"/>
+<circle cx="680.0" cy="335.9" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="710.0" cy="331.9" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="770.0" cy="336.2" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="890.0" cy="337.7" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="1130.0" cy="339.8" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<polyline points="680.0,235.9 710.0,254.4 770.0,245.0 890.0,260.5 1130.0,243.0" fill="none" stroke="#E8894F" stroke-width="2.2"/>
+<circle cx="680.0" cy="235.9" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="710.0" cy="254.4" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="770.0" cy="245.0" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="890.0" cy="260.5" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="1130.0" cy="243.0" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<polyline points="680.0,201.2 710.0,209.7 770.0,161.0 890.0,152.1 1130.0,80.8" fill="none" stroke="#7A8597" stroke-width="2.2" stroke-dasharray="7 5"/>
+<circle cx="680.0" cy="201.2" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="710.0" cy="209.7" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="770.0" cy="161.0" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="890.0" cy="152.1" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="1130.0" cy="80.8" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<text x="1200" y="26" font-family="IBM Plex Sans, Arial, sans-serif" font-size="22" font-weight="600" fill="#18212B" text-anchor="start">Peak memory</text>
+<line x1="1280" x2="1730" y1="390.0" y2="390.0" stroke="#E2DDD2"/>
+<text x="1272" y="395.0" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">0 GiB</text>
+<line x1="1280" x2="1730" y1="307.5" y2="307.5" stroke="#E2DDD2"/>
+<text x="1272" y="312.5" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">4 GiB</text>
+<line x1="1280" x2="1730" y1="225.0" y2="225.0" stroke="#E2DDD2"/>
+<text x="1272" y="230.0" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">8 GiB</text>
+<line x1="1280" x2="1730" y1="142.5" y2="142.5" stroke="#E2DDD2"/>
+<text x="1272" y="147.5" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">12 GiB</text>
+<line x1="1280" x2="1730" y1="60.0" y2="60.0" stroke="#E2DDD2"/>
+<text x="1272" y="65.0" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="end">16 GiB</text>
+<text x="1280.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">0.5</text>
+<text x="1310.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">1</text>
+<text x="1370.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">2</text>
+<text x="1490.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">4</text>
+<text x="1730.0" y="412" font-family="JetBrains Mono, monospace" font-size="13" font-weight="400" fill="#5B6470" text-anchor="middle">8</text>
+<text x="1505.0" y="434" font-family="IBM Plex Sans, Arial, sans-serif" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">requests per second</text>
+<polyline points="1280.0,385.9 1310.0,385.9 1370.0,383.8 1490.0,381.8 1730.0,377.6" fill="none" stroke="#2B44D6" stroke-width="3"/>
+<circle cx="1280.0" cy="385.9" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="1310.0" cy="385.9" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="1370.0" cy="383.8" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="1490.0" cy="381.8" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<circle cx="1730.0" cy="377.6" r="4.5" fill="#2B44D6" stroke="#2B44D6" stroke-width="2"/>
+<polyline points="1280.0,354.9 1310.0,330.2 1370.0,291.0 1490.0,235.3 1730.0,109.5" fill="none" stroke="#E8894F" stroke-width="2.2"/>
+<circle cx="1280.0" cy="354.9" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="1310.0" cy="330.2" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="1370.0" cy="291.0" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="1490.0" cy="235.3" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<circle cx="1730.0" cy="109.5" r="4.5" fill="#E8894F" stroke="#E8894F" stroke-width="2"/>
+<polyline points="1280.0,375.6 1310.0,367.3 1370.0,359.1 1490.0,344.6 1730.0,305.4" fill="none" stroke="#7A8597" stroke-width="2.2" stroke-dasharray="7 5"/>
+<circle cx="1280.0" cy="375.6" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="1310.0" cy="367.3" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="1370.0" cy="359.1" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="1490.0" cy="344.6" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<circle cx="1730.0" cy="305.4" r="4.5" fill="#7A8597" stroke="#7A8597" stroke-width="2"/>
+<line x1="0" x2="28" y1="476" y2="476" stroke="#2B44D6" stroke-width="3"/>
+<text x="36" y="481" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#18212B" text-anchor="start">LiteLLM Rust</text>
+<line x1="178" x2="206" y1="476" y2="476" stroke="#E8894F" stroke-width="3"/>
+<text x="214" y="481" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#18212B" text-anchor="start">Bifrost</text>
+<line x1="311" x2="339" y1="476" y2="476" stroke="#7A8597" stroke-width="3" stroke-dasharray="7 5"/>
+<text x="347" y="481" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#18212B" text-anchor="start">Portkey (no features)</text>
+<text x="1760" y="481" font-family="IBM Plex Sans, Arial, sans-serif" font-size="14" font-weight="400" fill="#5B6470" text-anchor="end">Basic features. Every request streamed, 870k to 1M tokens (~4 MB). 3 min per rate. First byte minus the mock's planned time.</text>
+</svg>

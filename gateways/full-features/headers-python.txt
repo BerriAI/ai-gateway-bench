@@ -1,0 +1,4 @@
+x-request-origin: loadtest-python
+x-trace-id: loadtest-python-trace
+x-cost-center: loadtest-python
+x-litellm-spend-logs-metadata: {"run": "loadtest-python"}

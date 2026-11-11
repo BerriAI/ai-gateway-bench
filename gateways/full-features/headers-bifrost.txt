@@ -1,0 +1,4 @@
+x-request-origin: loadtest-bifrost
+x-trace-id: loadtest-bifrost-trace
+x-cost-center: loadtest-bifrost
+x-litellm-spend-logs-metadata: {"run": "loadtest-bifrost"}

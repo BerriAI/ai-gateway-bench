@@ -1,0 +1,6 @@
+# Open-source Bifrost (github.com/maximhq/bifrost), a side with SIDES all, rust-bifrost,
+# rust-bifrost-portkey or all-portkey: Bifrost's own published image, unchanged, pinned by the
+# digest of its linux/amd64 manifest. Change both lines together; the digest pins what the tag
+# pointed at when the lane was written (docker.io/maximhq/bifrost:v2.3.0, pushed 2026-10-13).
+BIFROST_TAG=transports/v2.3.0
+BIFROST_SOURCE_IMAGE=docker.io/maximhq/bifrost@sha256:d9caa7c5babe673c11ed30c59b716a5feb429f1f3d7f932a6d5aabe81993f9e7

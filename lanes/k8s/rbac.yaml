@@ -1,0 +1,55 @@
+# The in-cluster runner's identity, applied by bench.sh run with __RELEASE__ and __NAMESPACE__
+# filled in. run.sh needs only to read pod metrics, and, on a cluster without metrics-server, to
+# list the stack's pods and read the last line of their sampler containers' logs. It reads no
+# Secrets (verify uses the database's fixed, non-secret password) and changes nothing.
+#
+# The operator who runs bench.sh needs more; see "Permissions" in README.md. Creating this Role
+# requires the operator to hold the same permissions in the namespace (Kubernetes refuses to grant
+# what the creator does not have).
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: __RELEASE__-runner
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: __RELEASE__-runner
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+rules:
+  # Gateway, mock, s3stub and Postgres CPU and memory, every 10 s.
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  # Fallback without metrics-server: the stack's pods and their sampler containers' logs.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: __RELEASE__-runner
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: __RELEASE__-runner
+subjects:
+  - kind: ServiceAccount
+    name: __RELEASE__-runner
+    namespace: __NAMESPACE__

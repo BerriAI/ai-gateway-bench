@@ -69,6 +69,25 @@ python analyze/make_chart.py
 
 Per-gateway setup (how to start each and point it at the mock) is in `gateways/<name>/README.md`. Measured results land in `results/`; chart source values are committed CSVs under `results/`.
 
+## Full-feature lane (Kubernetes)
+
+The local scenarios above run each gateway with a basic config on one machine. The Kubernetes
+lane in [`lanes/k8s`](lanes/k8s) runs LiteLLM Rust, LiteLLM Python, Bifrost and Portkey on their
+own 4-core, 16 GiB pods with the features production gateways run: virtual keys, budgets and rate
+limits on keys, users and teams, spend logs, Prometheus metrics, S3 request logs and header hooks.
+It drives them with the load-test kit in [`kit/`](kit) and checks every record they wrote
+afterwards.
+
+| Scenario | What it measures |
+|---|---|
+| [`scenarios/full_feature_sweep`](scenarios/full_feature_sweep) | Overhead, CPU and memory from 10 to 100 rps, every feature on |
+| [`scenarios/direct_floor`](scenarios/direct_floor) | The client, network and mock floor to subtract from each gateway |
+| [`scenarios/stream_1m`](scenarios/stream_1m) | First-byte time and memory with ~4 MB streamed requests |
+
+Configs are in [`gateways/full-features`](gateways/full-features). The data and chart scripts
+for the "Better Benchmarks" post are in [`results/better-benchmarks`](results/better-benchmarks)
+and [`analyze/better_benchmarks`](analyze/better_benchmarks).
+
 ## Results
 
 The charts are generated from real local runs against the fast Rust mock using a persistent Rust reqwest load driver for concurrency and throughput. The direct baseline remained controlled through concurrency 64; concurrency 256 was dropped because its p99 exceeded twice the single-client floor. Raw per-run data is in `results/`. Portkey OSS currently returns HTTP 500 for streaming Anthropic Messages requests.

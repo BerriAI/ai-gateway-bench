@@ -1,0 +1,126 @@
+# One-shot Jobs for the stack, applied by deploy.sh one at a time (kubectl apply -l
+# bench/job=<name>: migrate, then seed) with every placeholder filled in.
+#   migrate  the proxy's Prisma migrations at LITELLM_SHA (MIGRATIONS_IMAGE, built from the LiteLLM
+#            checkout's migrations/Dockerfile), the schema both gateways read virtual keys from
+#   seed     keys.sql from genconfig: 1,000 virtual keys with no limits, no team and no budget, so
+#            the Rust gateway accepts every one of them
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: __RELEASE__-migrate
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/job: migrate
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: __RELEASE__
+        app.kubernetes.io/name: ai-gateway-bench
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: __NODE_SELECTOR__
+      tolerations: __TOLERATIONS__
+      containers:
+        - name: migrate
+          image: __MIGRATIONS_IMAGE__
+          env:
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: password
+            - name: DATABASE_URL
+              value: postgresql://$(DATABASE_USERNAME):$(DATABASE_PASSWORD)@__RELEASE__-postgresql.__NAMESPACE__.svc.cluster.local:5432/litellm
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: __RELEASE__-seed
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/job: seed
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: __RELEASE__
+        app.kubernetes.io/name: ai-gateway-bench
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: __NODE_SELECTOR__
+      tolerations: __TOLERATIONS__
+      initContainers:
+        - name: genconfig
+          image: __TOOLS_IMAGE__
+          command: ["sh", "/genconfig/genconfig.sh", "/seed"]
+          volumeMounts:
+            - name: genconfig
+              mountPath: /genconfig
+            - name: seed
+              mountPath: /seed
+      containers:
+        # The stack's own Postgres image, for psql.
+        - name: seed
+          image: docker.io/library/postgres:16.2-bookworm@sha256:4aea012537edfad80f98d870a36e6b90b4c09b27be7f4b4759d72db863baeebb
+          command:
+            - sh
+            - -c
+            - psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f /seed/keys.sql && psql "$DATABASE_URL" -tAc 'SELECT count(*) FROM "LiteLLM_VerificationToken"'
+          env:
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: password
+            - name: DATABASE_URL
+              value: postgresql://$(DATABASE_USERNAME):$(DATABASE_PASSWORD)@__RELEASE__-postgresql.__NAMESPACE__.svc.cluster.local:5432/litellm
+          volumeMounts:
+            - name: seed
+              mountPath: /seed
+              readOnly: true
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: genconfig
+          configMap:
+            name: __RELEASE__-genconfig
+        - name: seed
+          emptyDir: {}

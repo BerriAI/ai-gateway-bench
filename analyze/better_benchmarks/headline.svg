@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1792" height="590" viewBox="0 0 1792 590">
+<rect width="1792" height="590" fill="#FFFFFF"/>
+<rect x="0" y="0" width="430" height="520" rx="14" fill="#F5F3EE"/>
+<text x="24" y="44" font-family="IBM Plex Sans, Arial, sans-serif" font-size="26" font-weight="600" fill="#18212B" text-anchor="start">Latency p50</text>
+<text x="24" y="72" font-family="IBM Plex Sans, Arial, sans-serif" font-size="16" font-weight="400" fill="#5B6470" text-anchor="start">added by the gateway, lower is better</text>
+<line x1="24" x2="406" y1="440" y2="440" stroke="#D9D4C9" stroke-width="1.5"/>
+<text x="62.2" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="600" fill="#2B44D6" text-anchor="middle">LiteLLM</text>
+<text x="62.2" y="483" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="600" fill="#2B44D6" text-anchor="middle">Rust</text>
+<rect x="38.516000000000005" y="390.2857142857143" width="47.368" height="49.714285714285715" rx="4" fill="#2B44D6"/>
+<text x="62.2" y="380.2857142857143" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#2B44D6" text-anchor="middle">0.9 ms</text>
+<text x="138.60000000000002" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">LiteLLM</text>
+<text x="138.60000000000002" y="483" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Python</text>
+<path d="M114.91600000000003,440 V164 L138.60000000000002,150 L162.28400000000002,164 V440 Z" fill="#9AA3B2"/>
+<text x="138.60000000000002" y="140" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">79.3 ms</text>
+<text x="215.0" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Bifrost</text>
+<rect x="191.316" y="373.7142857142857" width="47.368" height="66.28571428571428" rx="4" fill="#9AA3B2"/>
+<text x="215.0" y="363.7142857142857" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">1.2 ms</text>
+<text x="291.40000000000003" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Portkey</text>
+<rect x="267.716" y="324.0" width="47.368" height="116.0" rx="4" fill="#9AA3B2"/>
+<text x="291.40000000000003" y="314.0" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">2.1 ms</text>
+<text x="367.8" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">OpenRouter*</text>
+<path d="M344.116,440 V164 L367.8,150 L391.48400000000004,164 V440 Z" fill="#9AA3B2"/>
+<text x="367.8" y="140" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">61.8 ms</text>
+<rect x="454" y="0" width="430" height="520" rx="14" fill="#F5F3EE"/>
+<text x="478" y="44" font-family="IBM Plex Sans, Arial, sans-serif" font-size="26" font-weight="600" fill="#18212B" text-anchor="start">Latency p99</text>
+<text x="478" y="72" font-family="IBM Plex Sans, Arial, sans-serif" font-size="16" font-weight="400" fill="#5B6470" text-anchor="start">added by the gateway, lower is better</text>
+<line x1="478" x2="860" y1="440" y2="440" stroke="#D9D4C9" stroke-width="1.5"/>
+<text x="516.2" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="600" fill="#2B44D6" text-anchor="middle">LiteLLM</text>
+<text x="516.2" y="483" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="600" fill="#2B44D6" text-anchor="middle">Rust</text>
+<rect x="492.516" y="400.60377358490564" width="47.368" height="39.39622641509434" rx="4" fill="#2B44D6"/>
+<text x="516.2" y="390.60377358490564" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#2B44D6" text-anchor="middle">1.8 ms</text>
+<text x="592.6" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">LiteLLM</text>
+<text x="592.6" y="483" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Python</text>
+<path d="M568.916,440 V164 L592.6,150 L616.284,164 V440 Z" fill="#9AA3B2"/>
+<text x="592.6" y="140" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">1.59 s</text>
+<text x="669.0" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Bifrost</text>
+<rect x="645.316" y="348.0754716981132" width="47.368" height="91.92452830188681" rx="4" fill="#9AA3B2"/>
+<text x="669.0" y="338.0754716981132" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">4.2 ms</text>
+<text x="745.4000000000001" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Portkey</text>
+<rect x="721.7160000000001" y="324.0" width="47.368" height="116.0" rx="4" fill="#9AA3B2"/>
+<text x="745.4000000000001" y="314.0" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">5.3 ms</text>
+<text x="821.8000000000001" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">OpenRouter*</text>
+<path d="M798.1160000000001,440 V164 L821.8000000000001,150 L845.484,164 V440 Z" fill="#9AA3B2"/>
+<text x="821.8000000000001" y="140" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">935 ms</text>
+<rect x="908" y="0" width="430" height="520" rx="14" fill="#F5F3EE"/>
+<text x="932" y="44" font-family="IBM Plex Sans, Arial, sans-serif" font-size="26" font-weight="600" fill="#18212B" text-anchor="start">CPU</text>
+<text x="932" y="72" font-family="IBM Plex Sans, Arial, sans-serif" font-size="16" font-weight="400" fill="#5B6470" text-anchor="start">cores used, lower is better</text>
+<line x1="932" x2="1314" y1="440" y2="440" stroke="#D9D4C9" stroke-width="1.5"/>
+<text x="970.2" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="600" fill="#2B44D6" text-anchor="middle">LiteLLM</text>
+<text x="970.2" y="483" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="600" fill="#2B44D6" text-anchor="middle">Rust</text>
+<rect x="946.5160000000001" y="425.1027397260274" width="47.368" height="14.897260273972604" rx="4" fill="#2B44D6"/>
+<text x="970.2" y="415.1027397260274" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#2B44D6" text-anchor="middle">0.15</text>
+<text x="1046.6" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">LiteLLM</text>
+<text x="1046.6" y="483" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Python</text>
+<rect x="1022.9159999999999" y="150.0" width="47.368" height="290.0" rx="4" fill="#9AA3B2"/>
+<text x="1046.6" y="140.0" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">2.92</text>
+<text x="1123.0" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Bifrost</text>
+<rect x="1099.316" y="399.2808219178082" width="47.368" height="40.71917808219178" rx="4" fill="#9AA3B2"/>
+<text x="1123.0" y="389.2808219178082" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">0.41</text>
+<text x="1199.4" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Portkey</text>
+<rect x="1175.7160000000001" y="391.33561643835617" width="47.368" height="48.66438356164384" rx="4" fill="#9AA3B2"/>
+<text x="1199.4" y="381.33561643835617" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">0.49</text>
+<text x="1275.8" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">OpenRouter*</text>
+<rect x="1252.116" y="392" width="47.368" height="48" rx="4" fill="none" stroke="#D9D4C9" stroke-dasharray="4 3"/>
+<text x="1275.8" y="420" font-family="IBM Plex Sans, Arial, sans-serif" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">n/a</text>
+<rect x="1362" y="0" width="430" height="520" rx="14" fill="#F5F3EE"/>
+<text x="1386" y="44" font-family="IBM Plex Sans, Arial, sans-serif" font-size="26" font-weight="600" fill="#18212B" text-anchor="start">Memory</text>
+<text x="1386" y="72" font-family="IBM Plex Sans, Arial, sans-serif" font-size="16" font-weight="400" fill="#5B6470" text-anchor="start">peak, lower is better</text>
+<line x1="1386" x2="1768" y1="440" y2="440" stroke="#D9D4C9" stroke-width="1.5"/>
+<text x="1424.2" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="600" fill="#2B44D6" text-anchor="middle">LiteLLM</text>
+<text x="1424.2" y="483" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="600" fill="#2B44D6" text-anchor="middle">Rust</text>
+<rect x="1400.516" y="429.16256673296346" width="47.368" height="10.837433267036532" rx="4" fill="#2B44D6"/>
+<text x="1424.2" y="419.16256673296346" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#2B44D6" text-anchor="middle">357 MiB</text>
+<text x="1500.6000000000001" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">LiteLLM</text>
+<text x="1500.6000000000001" y="483" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Python</text>
+<rect x="1476.9160000000002" y="150.0" width="47.368" height="290.0" rx="4" fill="#9AA3B2"/>
+<text x="1500.6000000000001" y="140.0" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">9.3 GiB</text>
+<text x="1577.0" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Bifrost</text>
+<rect x="1553.316" y="354.72731079242124" width="47.368" height="85.27268920757876" rx="4" fill="#9AA3B2"/>
+<text x="1577.0" y="344.72731079242124" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">2.7 GiB</text>
+<text x="1653.4" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">Portkey</text>
+<rect x="1629.7160000000001" y="421.51261383858474" width="47.368" height="18.487386161415262" rx="4" fill="#9AA3B2"/>
+<text x="1653.4" y="411.51261383858474" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="middle">609 MiB</text>
+<text x="1729.8" y="464" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="middle">OpenRouter*</text>
+<rect x="1706.116" y="392" width="47.368" height="48" rx="4" fill="none" stroke="#D9D4C9" stroke-dasharray="4 3"/>
+<text x="1729.8" y="420" font-family="IBM Plex Sans, Arial, sans-serif" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">n/a</text>
+<text x="0" y="550" font-family="IBM Plex Sans, Arial, sans-serif" font-size="16" font-weight="400" fill="#5B6470" text-anchor="start">50 rps for 5 min, every feature on (Portkey has none). Every gateway served 100% of requests. Same pod size: 4 cores, 16 GiB. Latency is minus a direct-to-mock run.</text>
+<text x="0" y="576" font-family="IBM Plex Sans, Arial, sans-serif" font-size="16" font-weight="400" fill="#5B6470" text-anchor="start">*OpenRouter: separate test at 8 rps from Azure eastus, overhead vs. a direct call to the same mock. Capped bars are not to scale. CPU and memory n/a (hosted).</text>
+</svg>

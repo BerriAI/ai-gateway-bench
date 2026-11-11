@@ -1,0 +1,132 @@
+# The load generator: run.sh in the tools image, inside the cluster next to the gateways, applied by
+# bench.sh run with every placeholder filled in. The lane's scripts come from the
+# <release>-lane ConfigMap (bench.sh creates it) and results go to /results.
+#
+# Two containers share /results:
+#   runner  runs run.sh (stopped after RUN_TIMEOUT_MIN) and writes its exit code to /results/.exit
+#   holder  keeps the pod, and so /results, alive until bench.sh has copied the results out and
+#           written /results/.collected (or 2 hours after run.sh ended), even when run.sh failed
+#
+# The pod's own labels use the instance <release>-runner, not <release>, so the runner never counts
+# as part of the stack it measures; the Job carries <release>, and teardown deletes it with its pod.
+# loadgen takes about 1.1 cores and 2.5 GiB at 1,000 rps with the sustained mix (measured), so 8
+# cores keep it far from the limit; memory covers ~30,000 open requests if a gateway falls behind.
+# run.sh reports the client's CPU and lag per run.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: __RELEASE__-runner
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: runner
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: __RELEASE__-runner
+        app.kubernetes.io/name: ai-gateway-bench
+        bench/role: runner
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: __RELEASE__-runner
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: __NODE_SELECTOR__
+      tolerations: __TOLERATIONS__
+      containers:
+        - name: runner
+          image: __TOOLS_IMAGE__
+          command:
+            - sh
+            - -c
+            - |
+              rc=0
+              timeout -s TERM "$((RUN_TIMEOUT_MIN * 60))" sh /lane/run.sh || rc=$?
+              echo "$rc" > /results/.exit
+              exit "$rc"
+          env:
+            - name: RELEASE
+              value: "__RELEASE__"
+            - name: NAMESPACE
+              value: "__NAMESPACE__"
+            - name: SIDES
+              value: "__SIDES__"
+            - name: WORKLOADS
+              value: "__WORKLOADS__"
+            - name: ROUNDS
+              value: "__ROUNDS__"
+            - name: FEATURES
+              value: "__FEATURES__"
+            - name: PORTKEY_WORKERS
+              value: "__PORTKEY_WORKERS__"
+            - name: GATEWAY_CPU
+              value: "__GATEWAY_CPU__"
+            - name: CLIENT_CPU
+              value: "__CLIENT_CPU__"
+            - name: RUN_TIMEOUT_MIN
+              value: "__RUN_TIMEOUT_MIN__"
+            - name: RESULTS_DIR
+              value: /results
+            - name: HOME
+              value: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: lane
+              mountPath: /lane
+              readOnly: true
+            - name: results
+              mountPath: /results
+          resources:
+            requests:
+              cpu: "__CLIENT_CPU__"
+              memory: __CLIENT_MEMORY_REQUEST__
+            limits:
+              memory: __CLIENT_MEMORY_LIMIT__
+        - name: holder
+          image: __TOOLS_IMAGE__
+          command:
+            - sh
+            - -c
+            - |
+              while [ ! -f /results/.collected ]; do
+                if [ -f /results/.exit ] && [ -n "$(find /results/.exit -mmin +120)" ]; then
+                  echo "results were not collected within 2 hours of the run's end" >&2
+                  exit 1
+                fi
+                sleep 5
+              done
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: results
+              mountPath: /results
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: lane
+          configMap:
+            name: __RELEASE__-lane
+        - name: results
+          emptyDir: {}

@@ -1,0 +1,4 @@
+x-request-origin: loadtest-rust
+x-trace-id: loadtest-rust-trace
+x-cost-center: loadtest-rust
+x-litellm-spend-logs-metadata: {"run": "loadtest-rust"}
