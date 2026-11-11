@@ -1,0 +1,255 @@
+# The stack's database and Redis, applied by deploy.sh in two parts (kubectl apply -l bench/part=...):
+#   deps   the credentials Secret, Postgres (official image) and its init script
+#   redis  Redis, only with SHARED_STATE=on (both gateways' cross-replica state)
+#
+# The passwords are fixed and deliberately not secret: the database lives for one run, in one
+# namespace, and holds only synthetic keys. run.sh's verify step connects with the same fixed
+# password, so the runner's service account never needs to read Secrets.
+#
+# Postgres runs without a volume (emptyDir), with the room the gateways need: they write spend logs,
+# owner spend and daily tables here, and key-churn reaches 600 rps per side, so the shared database
+# is never the limit, and max_connections covers every gateway worker's pool.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: __RELEASE__-credentials
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: deps
+type: Opaque
+stringData:
+  username: litellm
+  password: bench-not-a-secret
+  postgres-password: bench-admin-not-a-secret
+  redis-password: bench-redis-not-a-secret
+---
+# The database and owner the gateways use (litellm), beside the postgres superuser, which only
+# Bifrost's init container uses (to create its own database).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: __RELEASE__-initdb
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: deps
+data:
+  10-litellm.sh: |
+    #!/bin/sh
+    set -eu
+    psql -v ON_ERROR_STOP=1 --username postgres --dbname postgres <<SQL
+    CREATE USER litellm WITH PASSWORD '${LITELLM_DB_PASSWORD}';
+    CREATE DATABASE litellm OWNER litellm;
+    SQL
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __RELEASE__-postgresql
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: deps
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: __RELEASE__
+      bench/role: postgresql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: __RELEASE__
+        app.kubernetes.io/name: ai-gateway-bench
+        bench/role: postgresql
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: __NODE_SELECTOR__
+      tolerations: __TOLERATIONS__
+      containers:
+        - name: postgresql
+          image: docker.io/library/postgres:16.2-bookworm@sha256:4aea012537edfad80f98d870a36e6b90b4c09b27be7f4b4759d72db863baeebb
+          args: ["-c", "max_connections=500", "-c", "shared_buffers=1GB"]
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: postgres-password
+            - name: LITELLM_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - name: postgresql
+              containerPort: 5432
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-h", "127.0.0.1", "-U", "litellm", "-d", "litellm"]
+            periodSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            - name: shm
+              mountPath: /dev/shm
+          resources:
+            requests:
+              cpu: "2"
+              memory: 4Gi
+              ephemeral-storage: 20Gi
+            limits:
+              memory: 4Gi
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: initdb
+          configMap:
+            name: __RELEASE__-initdb
+            # Executable, so the image's entrypoint runs it rather than sourcing it.
+            defaultMode: 0555
+        - name: shm
+          emptyDir:
+            medium: Memory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RELEASE__-postgresql
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: deps
+spec:
+  selector:
+    app.kubernetes.io/instance: __RELEASE__
+    bench/role: postgresql
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __RELEASE__-redis
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: redis
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: __RELEASE__
+      bench/role: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: __RELEASE__
+        app.kubernetes.io/name: ai-gateway-bench
+        bench/role: redis
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: __NODE_SELECTOR__
+      tolerations: __TOLERATIONS__
+      # Redis in Postgres's zone, like everything else in the stack.
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: __RELEASE__
+                  bench/role: postgresql
+      containers:
+        - name: redis
+          image: docker.io/library/redis:7.2.4-bookworm@sha256:5a93f6b2e391b78e8bd3f9e7e1e1e06aeb5295043b4703fb88392835cec924a0
+          args: ["--requirepass", "$(REDIS_PASSWORD)", "--appendonly", "yes", "--save", ""]
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: redis-password
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+            periodSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RELEASE__-redis
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: redis
+spec:
+  selector:
+    app.kubernetes.io/instance: __RELEASE__
+    bench/role: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379

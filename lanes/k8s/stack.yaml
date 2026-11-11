@@ -1,0 +1,1144 @@
+# The benchmark stack, applied by deploy.sh in two parts (kubectl apply -l bench/part=<name>) with
+# every placeholder filled in (lib.sh render):
+#   setup     mockllm and s3stub
+#   gateways  the Python and the Rust gateway, Bifrost and Portkey, as SIDES selects (bench/side),
+#             once the database is migrated and seeded
+# The <release>-genconfig ConfigMap the pods mount is created by deploy.sh from genconfig.sh.
+# Postgres and Redis are in deps.yaml; migrate and seed are in jobs.yaml.
+#
+# Every gateway starts from the same generated config (genconfig.sh, with a fixed key seed, so every
+# pod and the runner derive the identical config.yaml, keys.txt and keys.sql), gets the same CPU and
+# memory (GATEWAY_CPU, GATEWAY_MEMORY_GI; 4 cores and 16Gi by default), and reads keys from the same
+# database. Requests equal limits, so each gateway has its cores to itself while the others idle
+# between runs. Every pod gets NODE_SELECTOR and TOLERATION when they are set.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __RELEASE__-mockllm
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: setup
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: __RELEASE__
+      bench/role: mockllm
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: __RELEASE__
+        app.kubernetes.io/name: ai-gateway-bench
+        bench/role: mockllm
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: __NODE_SELECTOR__
+      tolerations: __TOLERATIONS__
+      # Same zone as the database (and Redis), so no request crosses zones.
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: __RELEASE__
+                  bench/role: postgresql
+      shareProcessNamespace: true
+      containers:
+        # For clusters without metrics-server: samples the pod's other processes itself (the process
+        # namespace is shared) every 10 s and prints CPU and resident memory. run.sh reads the last
+        # line with the pods/log API only when metrics.k8s.io cannot be read. Its own session (this
+        # shell, awk, sleep) and the pause process are left out. $$$$ because Kubernetes turns $$ in
+        # a command into $.
+        - name: sampler
+          image: __TOOLS_IMAGE__
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          command:
+            - sh
+            - -c
+            - |
+              hz="$(getconf CLK_TCK 2>/dev/null || echo 100)"
+              pg="$(getconf PAGESIZE 2>/dev/null || echo 4096)"
+              sid="$(cut -d')' -f2- /proc/$$$$/stat | awk '{print $4}')"
+              prev="" pt=""
+              while :; do
+                t="$(date +%s)"
+                set -- $(cat /proc/[0-9]*/stat 2>/dev/null | awk -v sid="$sid" '{
+                  pid = $1; line = $0; sub(/^.*\) /, "", line); split(line, f, " ")
+                  if (pid == 1 || f[4] == sid) next
+                  ticks += f[12] + f[13]; rss += f[22]
+                } END { printf "%d %d\n", ticks, rss }')
+                if [ -n "$prev" ] && [ "$t" -gt "$pt" ]; then
+                  d=$(($1 - prev)); [ "$d" -lt 0 ] && d=0
+                  printf '{"t":%s,"cpu":"%sn","mem":"%sKi"}\n' "$t" "$((d * 1000000000 / hz / (t - pt)))" "$(($2 * pg / 1024))"
+                fi
+                prev="$1" pt="$t"
+                sleep 10
+              done
+        - name: mockllm
+          image: __TOOLS_IMAGE__
+          # -count-headers is empty unless FEATURES=full, when verify reads the counts. With a Bifrost
+          # side, -tls-addr :9443 (self-signed) for Bifrost's Bedrock provider, which only speaks HTTPS.
+          command: ["sh", "-c", "exec mockllm -addr :9000 __MOCK_TLS_ARGS__ -count-headers '__MOCK_COUNT_HEADERS__'"]
+          ports:
+            - name: http
+              containerPort: 9000
+            - name: https
+              containerPort: 9443
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9000
+            periodSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: "4"
+              memory: 8Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RELEASE__-mockllm
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: setup
+spec:
+  selector:
+    app.kubernetes.io/instance: __RELEASE__
+    bench/role: mockllm
+  ports:
+    - name: http
+      port: 9000
+      targetPort: 9000
+    - name: https
+      port: 9443
+      targetPort: 9443
+---
+# The gateways' s3_v2 request logs with features full (path-style, no credentials checked). Long
+# strings are cut to 256 bytes as each log is stored, so hours of 1M-token prompts fit in memory
+# while every field verify reads survives. Kits with the compressed store hold the ~3M logs of the
+# sustained workloads (1,000 rps for 15 minutes, three sides) in a few GiB; its CPU keeps up so the
+# gateways' log uploads never queue behind it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __RELEASE__-s3stub
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: setup
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: __RELEASE__
+      bench/role: s3stub
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: __RELEASE__
+        app.kubernetes.io/name: ai-gateway-bench
+        bench/role: s3stub
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: __NODE_SELECTOR__
+      tolerations: __TOLERATIONS__
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: __RELEASE__
+                  bench/role: postgresql
+      shareProcessNamespace: true
+      containers:
+        # For clusters without metrics-server: samples the pod's other processes itself (the process
+        # namespace is shared) every 10 s and prints CPU and resident memory. run.sh reads the last
+        # line with the pods/log API only when metrics.k8s.io cannot be read. Its own session (this
+        # shell, awk, sleep) and the pause process are left out. $$$$ because Kubernetes turns $$ in
+        # a command into $.
+        - name: sampler
+          image: __TOOLS_IMAGE__
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          command:
+            - sh
+            - -c
+            - |
+              hz="$(getconf CLK_TCK 2>/dev/null || echo 100)"
+              pg="$(getconf PAGESIZE 2>/dev/null || echo 4096)"
+              sid="$(cut -d')' -f2- /proc/$$$$/stat | awk '{print $4}')"
+              prev="" pt=""
+              while :; do
+                t="$(date +%s)"
+                set -- $(cat /proc/[0-9]*/stat 2>/dev/null | awk -v sid="$sid" '{
+                  pid = $1; line = $0; sub(/^.*\) /, "", line); split(line, f, " ")
+                  if (pid == 1 || f[4] == sid) next
+                  ticks += f[12] + f[13]; rss += f[22]
+                } END { printf "%d %d\n", ticks, rss }')
+                if [ -n "$prev" ] && [ "$t" -gt "$pt" ]; then
+                  d=$(($1 - prev)); [ "$d" -lt 0 ] && d=0
+                  printf '{"t":%s,"cpu":"%sn","mem":"%sKi"}\n' "$t" "$((d * 1000000000 / hz / (t - pt)))" "$(($2 * pg / 1024))"
+                fi
+                prev="$1" pt="$t"
+                sleep 10
+              done
+        - name: s3stub
+          image: __TOOLS_IMAGE__
+          command: ["s3stub", "-addr", ":9100", "-max-string", "256"]
+          ports:
+            - name: http
+              containerPort: 9100
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9100
+            periodSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: "4"
+              memory: 8Gi
+            limits:
+              memory: 16Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RELEASE__-s3stub
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: setup
+spec:
+  selector:
+    app.kubernetes.io/instance: __RELEASE__
+    bench/role: s3stub
+  ports:
+    - name: http
+      port: 9100
+      targetPort: 9100
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __RELEASE__-python
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: gateways
+    bench/side: python
+spec:
+  replicas: __GATEWAY_REPLICAS__
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: __RELEASE__
+      bench/side: python
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: __RELEASE__
+        app.kubernetes.io/name: ai-gateway-bench
+        bench/side: python
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      # The image's USER is the name nonroot, which runAsNonRoot cannot verify; 65532 is its uid.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: __NODE_SELECTOR__
+      tolerations: __TOLERATIONS__
+      # Same zone as the mock. With shared state on the replicas do not fit beside the mock, so
+      # both sides are kept off its node and pay the same one hop to it; off, the role matches
+      # nothing and both sides share the mock's node as before.
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: __RELEASE__
+                  bench/role: mockllm
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: __RELEASE__
+                  bench/role: __MOCK_APART_ROLE__
+      initContainers:
+        - name: genconfig
+          image: __TOOLS_IMAGE__
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              sh /genconfig/genconfig.sh /config
+              if [ "__DISABLE_SPEND_LOGS__" = true ]; then
+                sed -i '/^general_settings:$/a\  disable_spend_logs: true' /config/config.yaml
+              fi
+              # The Python router shares cooldowns only through router_settings; the Rust gateway
+              # reads the REDIS_* variables below for the same thing.
+              if [ "__SHARED_STATE__" = true ]; then
+                printf '  redis_host: os.environ/REDIS_HOST\n  redis_port: 6379\n  redis_password: os.environ/REDIS_PASSWORD\n' > /config/router-redis.yaml
+                sed -i '/^router_settings:$/r /config/router-redis.yaml' /config/config.yaml
+                rm /config/router-redis.yaml
+              fi
+          volumeMounts:
+            - name: genconfig
+              mountPath: /genconfig
+            - name: config
+              mountPath: /config
+      shareProcessNamespace: true
+      containers:
+        # For clusters without metrics-server: samples the pod's other processes itself (the process
+        # namespace is shared) every 10 s and prints CPU and resident memory. run.sh reads the last
+        # line with the pods/log API only when metrics.k8s.io cannot be read. Its own session (this
+        # shell, awk, sleep) and the pause process are left out. $$$$ because Kubernetes turns $$ in
+        # a command into $.
+        - name: sampler
+          image: __TOOLS_IMAGE__
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          command:
+            - sh
+            - -c
+            - |
+              hz="$(getconf CLK_TCK 2>/dev/null || echo 100)"
+              pg="$(getconf PAGESIZE 2>/dev/null || echo 4096)"
+              sid="$(cut -d')' -f2- /proc/$$$$/stat | awk '{print $4}')"
+              prev="" pt=""
+              while :; do
+                t="$(date +%s)"
+                set -- $(cat /proc/[0-9]*/stat 2>/dev/null | awk -v sid="$sid" '{
+                  pid = $1; line = $0; sub(/^.*\) /, "", line); split(line, f, " ")
+                  if (pid == 1 || f[4] == sid) next
+                  ticks += f[12] + f[13]; rss += f[22]
+                } END { printf "%d %d\n", ticks, rss }')
+                if [ -n "$prev" ] && [ "$t" -gt "$pt" ]; then
+                  d=$(($1 - prev)); [ "$d" -lt 0 ] && d=0
+                  printf '{"t":%s,"cpu":"%sn","mem":"%sKi"}\n' "$t" "$((d * 1000000000 / hz / (t - pt)))" "$(($2 * pg / 1024))"
+                fi
+                prev="$1" pt="$t"
+                sleep 10
+              done
+        - name: gateway
+          image: __PYTHON_IMAGE__
+          args: ["--host", "0.0.0.0", "--port", "4000"]
+          env:
+            - name: NUM_WORKERS
+              value: "__PYTHON_WORKERS__"
+            # One registry across the workers, so /metrics counts every request, not one
+            # worker's share.
+            - name: PROMETHEUS_MULTIPROC_DIR
+              value: /prometheus
+            # features full: the s3_v2 callback's settings (config.yaml reads LOADTEST_S3_*), each
+            # side under its own prefix; unused otherwise. Same batch interval on both sides.
+            - name: LOADTEST_S3_BUCKET
+              value: logs
+            - name: LOADTEST_S3_ENDPOINT
+              value: http://__RELEASE__-s3stub.__NAMESPACE__.svc.cluster.local:9100
+            - name: LOADTEST_S3_PATH
+              value: python
+            - name: LOADTEST_S3_ACCESS_KEY_ID
+              value: bench-not-a-secret
+            - name: LOADTEST_S3_SECRET_ACCESS_KEY
+              value: bench-not-a-secret
+            - name: DEFAULT_S3_FLUSH_INTERVAL_SECONDS
+              value: "10"
+            - name: CONFIG_FILE_PATH
+              value: /config/config.yaml
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: password
+            - name: DATABASE_URL
+              value: postgresql://$(DATABASE_USERNAME):$(DATABASE_PASSWORD)@__RELEASE__-postgresql.__NAMESPACE__.svc.cluster.local:5432/litellm
+            # Shared state: with SHARED_STATE=on these are REDIS_HOST, REDIS_PORT and
+            # REDIS_PASSWORD, which both gateways read for cross-replica coordination (cooldowns,
+            # key invalidation, budget and rate-limit counters). Off, they get names nothing reads.
+            - name: __REDIS_ENV_PREFIX__REDIS_HOST
+              value: __RELEASE__-redis.__NAMESPACE__.svc.cluster.local
+            - name: __REDIS_ENV_PREFIX__REDIS_PORT
+              value: "6379"
+            - name: __REDIS_ENV_PREFIX__REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: redis-password
+          envFrom:
+            # An optional litellm-license Secret (LITELLM_LICENSE), if the namespace has one.
+            - secretRef:
+                name: litellm-license
+                optional: true
+          ports:
+            - name: http
+              containerPort: 4000
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: 4000
+            periodSeconds: 5
+            timeoutSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: prometheus
+              mountPath: /prometheus
+          resources:
+            requests:
+              cpu: "__GATEWAY_CPU__"
+              memory: __GATEWAY_MEMORY__
+            limits:
+              cpu: "__GATEWAY_CPU__"
+              memory: __GATEWAY_MEMORY__
+      volumes:
+        - name: genconfig
+          configMap:
+            name: __RELEASE__-genconfig
+        - name: config
+          emptyDir: {}
+        - name: prometheus
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RELEASE__-python
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: gateways
+    bench/side: python
+spec:
+  selector:
+    app.kubernetes.io/instance: __RELEASE__
+    bench/side: python
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+---
+# One DNS record per replica, so verify scrapes /metrics on each.
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RELEASE__-python-pods
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: gateways
+    bench/side: python
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/instance: __RELEASE__
+    bench/side: python
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __RELEASE__-rust
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: gateways
+    bench/side: rust
+spec:
+  replicas: __GATEWAY_REPLICAS__
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: __RELEASE__
+      bench/side: rust
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: __RELEASE__
+        app.kubernetes.io/name: ai-gateway-bench
+        bench/side: rust
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: __NODE_SELECTOR__
+      tolerations: __TOLERATIONS__
+      # Same zone as the mock. With shared state on the replicas do not fit beside the mock, so
+      # both sides are kept off its node and pay the same one hop to it; off, the role matches
+      # nothing and both sides share the mock's node as before.
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: __RELEASE__
+                  bench/role: mockllm
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: __RELEASE__
+                  bench/role: __MOCK_APART_ROLE__
+      initContainers:
+        - name: genconfig
+          image: __TOOLS_IMAGE__
+          command: ["sh", "/genconfig/genconfig.sh", "/config"]
+          volumeMounts:
+            - name: genconfig
+              mountPath: /genconfig
+            - name: config
+              mountPath: /config
+      shareProcessNamespace: true
+      containers:
+        # For clusters without metrics-server: samples the pod's other processes itself (the process
+        # namespace is shared) every 10 s and prints CPU and resident memory. run.sh reads the last
+        # line with the pods/log API only when metrics.k8s.io cannot be read. Its own session (this
+        # shell, awk, sleep) and the pause process are left out. $$$$ because Kubernetes turns $$ in
+        # a command into $.
+        - name: sampler
+          image: __TOOLS_IMAGE__
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          command:
+            - sh
+            - -c
+            - |
+              hz="$(getconf CLK_TCK 2>/dev/null || echo 100)"
+              pg="$(getconf PAGESIZE 2>/dev/null || echo 4096)"
+              sid="$(cut -d')' -f2- /proc/$$$$/stat | awk '{print $4}')"
+              prev="" pt=""
+              while :; do
+                t="$(date +%s)"
+                set -- $(cat /proc/[0-9]*/stat 2>/dev/null | awk -v sid="$sid" '{
+                  pid = $1; line = $0; sub(/^.*\) /, "", line); split(line, f, " ")
+                  if (pid == 1 || f[4] == sid) next
+                  ticks += f[12] + f[13]; rss += f[22]
+                } END { printf "%d %d\n", ticks, rss }')
+                if [ -n "$prev" ] && [ "$t" -gt "$pt" ]; then
+                  d=$(($1 - prev)); [ "$d" -lt 0 ] && d=0
+                  printf '{"t":%s,"cpu":"%sn","mem":"%sKi"}\n' "$t" "$((d * 1000000000 / hz / (t - pt)))" "$(($2 * pg / 1024))"
+                fi
+                prev="$1" pt="$t"
+                sleep 10
+              done
+        - name: gateway
+          image: __RUST_IMAGE__
+          env:
+            - name: HOST
+              value: 0.0.0.0
+            - name: PORT
+              value: "4000"
+            - name: LITELLM_CONFIG
+              value: /config/config.yaml
+            # features full: the s3_v2 callback's settings (config.yaml reads LOADTEST_S3_*), each
+            # side under its own prefix; unused otherwise. Same batch interval on both sides.
+            - name: LOADTEST_S3_BUCKET
+              value: logs
+            - name: LOADTEST_S3_ENDPOINT
+              value: http://__RELEASE__-s3stub.__NAMESPACE__.svc.cluster.local:9100
+            - name: LOADTEST_S3_PATH
+              value: rust
+            - name: LOADTEST_S3_ACCESS_KEY_ID
+              value: bench-not-a-secret
+            - name: LOADTEST_S3_SECRET_ACCESS_KEY
+              value: bench-not-a-secret
+            - name: DEFAULT_S3_FLUSH_INTERVAL_SECONDS
+              value: "10"
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: password
+            - name: DATABASE_URL
+              value: postgresql://$(DATABASE_USERNAME):$(DATABASE_PASSWORD)@__RELEASE__-postgresql.__NAMESPACE__.svc.cluster.local:5432/litellm
+            # Shared state: with SHARED_STATE=on these are REDIS_HOST, REDIS_PORT and
+            # REDIS_PASSWORD, which both gateways read for cross-replica coordination (cooldowns,
+            # key invalidation, budget and rate-limit counters). Off, they get names nothing reads.
+            - name: __REDIS_ENV_PREFIX__REDIS_HOST
+              value: __RELEASE__-redis.__NAMESPACE__.svc.cluster.local
+            - name: __REDIS_ENV_PREFIX__REDIS_PORT
+              value: "6379"
+            - name: __REDIS_ENV_PREFIX__REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: redis-password
+          ports:
+            - name: http
+              containerPort: 4000
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: 4000
+            periodSeconds: 5
+            timeoutSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+          resources:
+            requests:
+              cpu: "__GATEWAY_CPU__"
+              memory: __GATEWAY_MEMORY__
+            limits:
+              cpu: "__GATEWAY_CPU__"
+              memory: __GATEWAY_MEMORY__
+      volumes:
+        - name: genconfig
+          configMap:
+            name: __RELEASE__-genconfig
+        - name: config
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RELEASE__-rust
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: gateways
+    bench/side: rust
+spec:
+  selector:
+    app.kubernetes.io/instance: __RELEASE__
+    bench/side: rust
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+---
+# One DNS record per replica, so verify scrapes /metrics on each.
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RELEASE__-rust-pods
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: gateways
+    bench/side: rust
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/instance: __RELEASE__
+    bench/side: rust
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+---
+# Open-source Bifrost (bifrost.version, its published image), with SIDES all, rust-bifrost,
+# rust-bifrost-portkey or all-portkey: the same deployments, groups, keys, limits and budgets as the
+# other sides, from genconfig's bifrost key set. It loads config.json from its app
+# dir into its config store (database bifrost in the same Postgres, created here) and writes its
+# logs there. It keeps rate limits, budgets and counters in process with no shared store at all, so
+# it runs one replica whatever shared state is; the placement rule is the other sides' so it pays
+# the same hop to the mock.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __RELEASE__-bifrost
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: gateways
+    bench/side: bifrost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: __RELEASE__
+      bench/side: bifrost
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: __RELEASE__
+        app.kubernetes.io/name: ai-gateway-bench
+        bench/side: bifrost
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: __NODE_SELECTOR__
+      tolerations: __TOLERATIONS__
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: __RELEASE__
+                  bench/role: mockllm
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: __RELEASE__
+                  bench/role: __MOCK_APART_ROLE__
+      initContainers:
+        # genconfig into the app dir (config.json and bifrost-pricing.json at -bifrost-pricing-file),
+        # and the bifrost database, owned by the user both Bifrost and verify connect as.
+        - name: genconfig
+          image: __TOOLS_IMAGE__
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              sh /genconfig/genconfig.sh /config
+              cp /config/bifrost-config.json /config/config.json
+              admin="postgresql://postgres:${DATABASE_ADMIN_PASSWORD}@__RELEASE__-postgresql.__NAMESPACE__.svc.cluster.local:5432/litellm"
+              if [ "$(psql "$admin" -tAc "SELECT 1 FROM pg_database WHERE datname = 'bifrost'")" != 1 ]; then
+                psql "$admin" -v ON_ERROR_STOP=1 -c "CREATE DATABASE bifrost OWNER ${DATABASE_USERNAME}"
+              fi
+          env:
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: username
+            - name: DATABASE_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: postgres-password
+          volumeMounts:
+            - name: genconfig
+              mountPath: /genconfig
+            - name: config
+              mountPath: /config
+      shareProcessNamespace: true
+      containers:
+        # For clusters without metrics-server: samples the pod's other processes itself (the process
+        # namespace is shared) every 10 s and prints CPU and resident memory. run.sh reads the last
+        # line with the pods/log API only when metrics.k8s.io cannot be read. Its own session (this
+        # shell, awk, sleep) and the pause process are left out. $$$$ because Kubernetes turns $$ in
+        # a command into $.
+        - name: sampler
+          image: __TOOLS_IMAGE__
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          command:
+            - sh
+            - -c
+            - |
+              hz="$(getconf CLK_TCK 2>/dev/null || echo 100)"
+              pg="$(getconf PAGESIZE 2>/dev/null || echo 4096)"
+              sid="$(cut -d')' -f2- /proc/$$$$/stat | awk '{print $4}')"
+              prev="" pt=""
+              while :; do
+                t="$(date +%s)"
+                set -- $(cat /proc/[0-9]*/stat 2>/dev/null | awk -v sid="$sid" '{
+                  pid = $1; line = $0; sub(/^.*\) /, "", line); split(line, f, " ")
+                  if (pid == 1 || f[4] == sid) next
+                  ticks += f[12] + f[13]; rss += f[22]
+                } END { printf "%d %d\n", ticks, rss }')
+                if [ -n "$prev" ] && [ "$t" -gt "$pt" ]; then
+                  d=$(($1 - prev)); [ "$d" -lt 0 ] && d=0
+                  printf '{"t":%s,"cpu":"%sn","mem":"%sKi"}\n' "$t" "$((d * 1000000000 / hz / (t - pt)))" "$(($2 * pg / 1024))"
+                fi
+                prev="$1" pt="$t"
+                sleep 10
+              done
+        - name: gateway
+          image: __BIFROST_IMAGE__
+          # The published image's entrypoint takes these from the environment (flags other than
+          # -host and -port are dropped).
+          env:
+            - name: APP_DIR
+              value: /config
+            - name: APP_HOST
+              value: 0.0.0.0
+            - name: APP_PORT
+              value: "4000"
+            - name: LOG_LEVEL
+              value: info
+            # Go's scheduler and GC sized to the container, as the Rust gateway's runtime is.
+            - name: GOMAXPROCS
+              value: "__GATEWAY_CPU__"
+            - name: GOMEMLIMIT
+              value: __GO_MEMLIMIT__
+            - name: BIFROST_PG_HOST
+              value: __RELEASE__-postgresql.__NAMESPACE__.svc.cluster.local
+            - name: BIFROST_PG_PORT
+              value: "5432"
+            - name: BIFROST_PG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: username
+            - name: BIFROST_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __RELEASE__-credentials
+                  key: password
+            - name: BIFROST_PG_DB
+              value: bifrost
+            # features full: the logs store's S3 payloads, under bifrost/ (genconfig sets the prefix).
+            - name: LOADTEST_S3_BUCKET
+              value: logs
+            - name: LOADTEST_S3_ENDPOINT
+              value: http://__RELEASE__-s3stub.__NAMESPACE__.svc.cluster.local:9100
+            - name: LOADTEST_S3_ACCESS_KEY_ID
+              value: bench-not-a-secret
+            - name: LOADTEST_S3_SECRET_ACCESS_KEY
+              value: bench-not-a-secret
+          ports:
+            - name: http
+              containerPort: 4000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            periodSeconds: 5
+            timeoutSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          resources:
+            requests:
+              cpu: "__GATEWAY_CPU__"
+              memory: __GATEWAY_MEMORY__
+            limits:
+              cpu: "__GATEWAY_CPU__"
+              memory: __GATEWAY_MEMORY__
+      volumes:
+        - name: genconfig
+          configMap:
+            name: __RELEASE__-genconfig
+        - name: config
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RELEASE__-bifrost
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: gateways
+    bench/side: bifrost
+spec:
+  selector:
+    app.kubernetes.io/instance: __RELEASE__
+    bench/side: bifrost
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+---
+# One DNS record per replica, so verify scrapes /metrics on each (there is one).
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RELEASE__-bifrost-pods
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: gateways
+    bench/side: bifrost
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/instance: __RELEASE__
+    bench/side: bifrost
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+---
+# The open-source Portkey gateway (portkey.version, its published image), with SIDES rust-portkey,
+# rust-bifrost-portkey or all-portkey. It keeps no model list, keys or database: every request carries its routing
+# in an x-portkey-config header (genconfig's portkey key set, sent by loadgen per model group), which
+# load-balances over the same deployments on the mock as the other sides. So it needs no init
+# container and no config here, only TRUSTED_CUSTOM_HOSTS: the gateway refuses a custom_host on a
+# .local name unless it is listed there. It has no state at all, so it runs one replica whatever
+# shared state is; the placement rule is the other sides' so it pays the same hop to the mock.
+#
+# The image runs one Node.js process (npm run start:node). Here Node's cluster module forks
+# PORTKEY_WORKERS copies of that same entry point, sharing the port: 4 (the default) lets the gateway
+# use its 4 cores as Python's 4 workers do, 1 is the image's own single process. Each gets an equal
+# share of the heap budget (GATEWAY_MEMORY_GI less 2 GiB, as Bifrost's GOMEMLIMIT). The image's files
+# are unchanged. --headless and NODE_ENV=production leave out the local log UI.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __RELEASE__-portkey
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: gateways
+    bench/side: portkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: __RELEASE__
+      bench/side: portkey
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: __RELEASE__
+        app.kubernetes.io/name: ai-gateway-bench
+        bench/side: portkey
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: __NODE_SELECTOR__
+      tolerations: __TOLERATIONS__
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: __RELEASE__
+                  bench/role: mockllm
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: __RELEASE__
+                  bench/role: __MOCK_APART_ROLE__
+      shareProcessNamespace: true
+      containers:
+        # For clusters without metrics-server: samples the pod's other processes itself (the process
+        # namespace is shared) every 10 s and prints CPU and resident memory. run.sh reads the last
+        # line with the pods/log API only when metrics.k8s.io cannot be read. Its own session (this
+        # shell, awk, sleep) and the pause process are left out. $$$$ because Kubernetes turns $$ in
+        # a command into $.
+        - name: sampler
+          image: __TOOLS_IMAGE__
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          command:
+            - sh
+            - -c
+            - |
+              hz="$(getconf CLK_TCK 2>/dev/null || echo 100)"
+              pg="$(getconf PAGESIZE 2>/dev/null || echo 4096)"
+              sid="$(cut -d')' -f2- /proc/$$$$/stat | awk '{print $4}')"
+              prev="" pt=""
+              while :; do
+                t="$(date +%s)"
+                set -- $(cat /proc/[0-9]*/stat 2>/dev/null | awk -v sid="$sid" '{
+                  pid = $1; line = $0; sub(/^.*\) /, "", line); split(line, f, " ")
+                  if (pid == 1 || f[4] == sid) next
+                  ticks += f[12] + f[13]; rss += f[22]
+                } END { printf "%d %d\n", ticks, rss }')
+                if [ -n "$prev" ] && [ "$t" -gt "$pt" ]; then
+                  d=$(($1 - prev)); [ "$d" -lt 0 ] && d=0
+                  printf '{"t":%s,"cpu":"%sn","mem":"%sKi"}\n' "$t" "$((d * 1000000000 / hz / (t - pt)))" "$(($2 * pg / 1024))"
+                fi
+                prev="$1" pt="$t"
+                sleep 10
+              done
+        - name: gateway
+          image: __PORTKEY_IMAGE__
+          workingDir: /app
+          command:
+            - node
+            - -e
+            - |
+              const cluster = require('node:cluster');
+              const n = Number(process.env.PORTKEY_WORKERS);
+              // execArgv: [] because workers otherwise inherit this -e script and run it instead of
+              // the server; the heap size reaches them through NODE_OPTIONS.
+              cluster.setupPrimary({ exec: '/app/build/start-server.js', execArgv: [], args: ['--headless', '--port=4000'] });
+              for (let i = 0; i < n; i++) cluster.fork();
+              // A worker that dies takes the pod with it, so a crash shows as a restart.
+              cluster.on('exit', (w, code, signal) => {
+                console.error(`portkey worker ${w.process.pid} exited (${signal || code})`);
+                process.exit(1);
+              });
+          env:
+            - name: PORTKEY_WORKERS
+              value: "__PORTKEY_WORKERS__"
+            - name: NODE_ENV
+              value: production
+            - name: NODE_OPTIONS
+              value: --max-old-space-size=__PORTKEY_HEAP_MB__
+            - name: TRUSTED_CUSTOM_HOSTS
+              value: __RELEASE__-mockllm.__NAMESPACE__.svc.cluster.local
+            - name: HOME
+              value: /tmp
+          ports:
+            - name: http
+              containerPort: 4000
+          readinessProbe:
+            # GET / answers "AI Gateway says hey!" (the gateway has no /health route).
+            httpGet:
+              path: /
+              port: 4000
+            periodSeconds: 5
+            timeoutSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: "__GATEWAY_CPU__"
+              memory: __GATEWAY_MEMORY__
+            limits:
+              cpu: "__GATEWAY_CPU__"
+              memory: __GATEWAY_MEMORY__
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RELEASE__-portkey
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/instance: __RELEASE__
+    app.kubernetes.io/name: ai-gateway-bench
+    bench/part: gateways
+    bench/side: portkey
+spec:
+  selector:
+    app.kubernetes.io/instance: __RELEASE__
+    bench/side: portkey
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000

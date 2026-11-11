@@ -1,0 +1,7 @@
+# The open-source Portkey gateway (github.com/Portkey-AI/gateway), a side with SIDES rust-portkey,
+# rust-bifrost-portkey or all-portkey: Portkey's own published image, unchanged, pinned by the
+# digest of its linux/amd64 manifest. Change both lines together; the digest pins what the tag
+# pointed at when the lane was written (docker.io/portkeyai/gateway:1.15.2, pushed 2026-01-12, the
+# latest release; the repository's main has commits after it but no release).
+PORTKEY_TAG=1.15.2
+PORTKEY_SOURCE_IMAGE=docker.io/portkeyai/gateway@sha256:552b53994ffe08149af5d0de9c3e810d85d9d14d7b4cac7c0ade8bc48787d26c

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="512" viewBox="0 0 1600 512">
+<rect width="1600" height="512" fill="#FFFFFF"/>
+<rect x="0" y="14" width="16" height="16" rx="3" fill="#B4501F"/>
+<text x="24" y="28" font-family="IBM Plex Sans, Arial, sans-serif" font-size="16" font-weight="400" fill="#18212B" text-anchor="start">Copy of the request body</text>
+<rect x="270" y="14" width="16" height="16" rx="3" fill="#2B44D6"/>
+<text x="294" y="28" font-family="IBM Plex Sans, Arial, sans-serif" font-size="16" font-weight="400" fill="#18212B" text-anchor="start">Buffers and per-call state</text>
+<line x1="260.0" x2="260.0" y1="62" y2="404" stroke="#D9D4C9"/>
+<text x="260.0" y="426" font-family="JetBrains Mono, monospace" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">0 MB</text>
+<line x1="460.0" x2="460.0" y1="62" y2="404" stroke="#D9D4C9"/>
+<text x="460.0" y="426" font-family="JetBrains Mono, monospace" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">2 MB</text>
+<line x1="660.0" x2="660.0" y1="62" y2="404" stroke="#D9D4C9"/>
+<text x="660.0" y="426" font-family="JetBrains Mono, monospace" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">4 MB</text>
+<line x1="860.0" x2="860.0" y1="62" y2="404" stroke="#D9D4C9"/>
+<text x="860.0" y="426" font-family="JetBrains Mono, monospace" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">6 MB</text>
+<line x1="1060.0" x2="1060.0" y1="62" y2="404" stroke="#D9D4C9"/>
+<text x="1060.0" y="426" font-family="JetBrains Mono, monospace" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">8 MB</text>
+<line x1="1260.0" x2="1260.0" y1="62" y2="404" stroke="#D9D4C9"/>
+<text x="1260.0" y="426" font-family="JetBrains Mono, monospace" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">10 MB</text>
+<line x1="1460.0" x2="1460.0" y1="62" y2="404" stroke="#D9D4C9"/>
+<text x="1460.0" y="426" font-family="JetBrains Mono, monospace" font-size="14" font-weight="400" fill="#5B6470" text-anchor="middle">12 MB</text>
+<text x="0" y="96.0" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="400" fill="#18212B" text-anchor="start">LiteLLM Python</text>
+<rect x="260.00" y="70" width="320.00" height="40" fill="#B4501F"/>
+<text x="262" y="128" font-family="IBM Plex Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#5B6470" text-anchor="start">parsed request</text>
+<rect x="582.00" y="70" width="283.00" height="40" fill="#B4501F"/>
+<text x="584.0" y="128" font-family="IBM Plex Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#5B6470" text-anchor="start">raw body</text>
+<rect x="867.00" y="70" width="243.00" height="40" fill="#B4501F"/>
+<text x="869.0" y="128" font-family="IBM Plex Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#5B6470" text-anchor="start">json.dumps for logging</text>
+<rect x="1112.00" y="70" width="241.00" height="40" fill="#B4501F"/>
+<text x="1114.0" y="128" font-family="IBM Plex Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#5B6470" text-anchor="start">outbound bytes</text>
+<text x="1365.0" y="96.0" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" fill="#18212B" text-anchor="start">11.0 MB</text>
+<text x="0" y="184.0" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="400" fill="#18212B" text-anchor="start">Bifrost</text>
+<rect x="260.00" y="158" width="357.00" height="40" fill="#B4501F"/>
+<text x="262" y="216" font-family="IBM Plex Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#5B6470" text-anchor="start">parsed request</text>
+<rect x="619.00" y="158" width="188.00" height="40" fill="#B4501F"/>
+<text x="621.0" y="216" font-family="IBM Plex Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#5B6470" text-anchor="start">re-encoded messages</text>
+<rect x="809.00" y="158" width="187.00" height="40" fill="#B4501F"/>
+<text x="811.0" y="216" font-family="IBM Plex Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#5B6470" text-anchor="start">trace text</text>
+<rect x="998.00" y="158" width="186.00" height="40" fill="#B4501F"/>
+<text x="1000.0" y="216" font-family="IBM Plex Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#5B6470" text-anchor="start">trace summary</text>
+<rect x="1186.00" y="158" width="188.00" height="40" fill="#B4501F"/>
+<text x="1188.0" y="216" font-family="IBM Plex Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#5B6470" text-anchor="start">outbound + inbound</text>
+<text x="1386.0" y="184.0" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" fill="#18212B" text-anchor="start">11.2 MB</text>
+<text x="0" y="272.0" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="start">LiteLLM Rust</text>
+<rect x="260.00" y="246" width="47.00" height="40" fill="#2B44D6"/>
+<text x="317.0" y="272.0" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" fill="#18212B" text-anchor="start">0.47 MB</text>
+<text x="0" y="360.0" font-family="IBM Plex Sans, Arial, sans-serif" font-size="17" font-weight="600" fill="#18212B" text-anchor="start">LiteLLM Rust + S3 logs</text>
+<rect x="260.00" y="334" width="243.00" height="40" fill="#B4501F"/>
+<text x="262" y="392" font-family="IBM Plex Sans, Arial, sans-serif" font-size="13" font-weight="400" fill="#5B6470" text-anchor="start">kept for the S3 log</text>
+<rect x="505.00" y="334" width="47.00" height="40" fill="#2B44D6"/>
+<text x="562.0" y="360.0" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" fill="#18212B" text-anchor="start">2.9 MB</text>
+<text x="0" y="504" font-family="IBM Plex Sans, Arial, sans-serif" font-size="15" font-weight="400" fill="#5B6470" text-anchor="start">Heap held per open stream, 500k-token request (2.45 MB body).</text>
+</svg>
