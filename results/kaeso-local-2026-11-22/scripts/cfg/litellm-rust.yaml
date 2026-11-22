@@ -1,0 +1,8 @@
+model_list:
+  - model_name: anthropic/mock
+    litellm_params:
+      model: anthropic/mock
+      api_base: http://127.0.0.1:9000
+      api_key: dummy
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

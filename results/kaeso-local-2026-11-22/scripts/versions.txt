@@ -1,0 +1,11 @@
+# Images as pulled on 2026-11-22: tag, then the digest the run used.
+ghcr.io/logicplanes/kaeso-gateway:0.7.0 ghcr.io/logicplanes/kaeso-gateway@sha256:3d32fd7827417e49475b4ac9ad7d25f7daed28f02fa489ef4077ff501faaae1a
+ghcr.io/berriai/litellm:v1.110.2 ghcr.io/berriai/litellm@sha256:ef798594ca3db8d81bad2e1439f536f49b71fe095ee9f20416f5e149b4e22035
+maximhq/bifrost:v2.6.0 maximhq/bifrost@sha256:5968d007ba4f74ee01bc4ceb071decb9927a0b7bb43dbb9072208f75e2d522e3
+portkeyai/gateway:1.15.2 portkeyai/gateway@sha256:97f094d9c8a764cbfaa2a7138c0017b247ca923bb06db1b4c13b7f8a33b5200d
+# LiteLLM Rust binary, sha256 and path
+b80e284d93b67806511e0371456d80083d6f1d932abd723a1b31c1ed578ae122  /root/litellm/litellm/rust/target/release/litellm-gateway
+# BerriAI/litellm commit
+d4e8f96b88c5113509b318b4d35520bf73e88152
+# BerriAI/ai-gateway-bench commit
+44365ca99307c2fde47c7ca0aa5e17c1665dcf38

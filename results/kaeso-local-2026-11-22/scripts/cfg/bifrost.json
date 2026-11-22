@@ -1,0 +1,13 @@
+{
+  "$schema": "https://www.getbifrost.ai/schema",
+  "client": { "enable_logging": false, "enforce_auth_on_inference": false },
+  "config_store": { "enabled": false },
+  "logs_store": { "enabled": false },
+  "providers": {
+    "mock": {
+      "keys": [{ "name": "mock-key", "value": "dummy", "models": ["*"], "weight": 1.0 }],
+      "network_config": { "base_url": "http://127.0.0.1:9000", "default_request_timeout_in_seconds": 60, "allow_private_network": true },
+      "custom_provider_config": { "base_provider_type": "anthropic" }
+    }
+  }
+}
